@@ -1,0 +1,1 @@
+global.Frame = require('./frame');

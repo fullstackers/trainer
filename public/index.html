@@ -1,0 +1,57 @@
+<style type="text/css">
+#screen {
+  height:480px;
+  width:640px;
+  border:thin solid #CCC;
+  display:inline-block;
+}
+#reduced {
+  height:48px;
+  width:64px;
+  border:thin solid #CCC;
+  display:inline-block;
+}
+.point {
+  height:1px;
+  width:1px;
+  background:#000;
+  position:absolute;
+}
+</style>
+<div id="screen"></div>
+<div id="reduced"></div>
+<div id="status"></div>
+<div id="controls">
+  <button name="clear">Clear</button>
+</div>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<script src="/core.js"></script>
+<script>
+$(function () {
+  var source = Frame(640,480);
+  $('#controls').each(function () {
+    $(this).find('button[name="clear"]').click(function () {
+      $('#screen,#reduced').html('');
+    });
+  });
+  $('#screen').each(function () {
+    $(this).mousemove(function (e) {
+      var offset = $(this).offset();
+      var x = e.pageX - offset.left, y = e.pageY - offset.top;
+      $('#status').html('x: '+ e.pageX + '<br />y: ' + e.pageY + '<br />');
+      source.inc(x,y);
+      $(this).append($('<div>').addClass('point').css({top:y, left:x}));
+    });
+  });
+  setInterval(function () {
+    $('#reduced').html('');
+    var self = $('#reduced');
+    var offset = self.offset();
+    source.scale(64,48).each(function (cell) {
+      if (!cell.data) return;
+      var x = cell.x + offset.left, y = cell.y + offset.top;
+      self.append($('<div>').addClass('point').css({top:y, left:x}));
+    });
+  }, 100);
+});
+</script>
