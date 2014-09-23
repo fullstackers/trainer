@@ -5,11 +5,19 @@
   border:thin solid #CCC;
   display:inline-block;
 }
-#reduced {
+#frames {
+  display:block;
+  border:thin solid #CCC;
+}
+#reduced, .frame {
   height:48px;
   width:64px;
   border:thin solid #CCC;
   display:inline-block;
+}
+.frame {
+  margin:.15em;
+  position:relative;
 }
 .point {
   height:1px;
@@ -17,21 +25,33 @@
   background:#000;
   position:absolute;
 }
+.left, .right {
+  vertical-align:top;
+  display:inline-block;
+}
 </style>
-<div id="screen"></div>
-<div id="reduced"></div>
-<div id="status"></div>
-<div id="controls">
-  <button name="clear">Clear</button>
+<div class="left">
+  <div id="screen"></div>
+  <div id="reduced"></div>
 </div>
+<div class="right">
+  <div id="controls">
+    <button name="clear">Clear</button>
+  </div>
+  <div id="status"></div>
+  </div>
+<div id="frames"></div>
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
 <script src="/core.js"></script>
 <script>
 $(function () {
   var source = Frame(640,480);
+  var frame = Frame(640,480);
+  var frames = [];
   $('#controls').each(function () {
     $(this).find('button[name="clear"]').click(function () {
       $('#screen,#reduced').html('');
+      source = Frame(640,480);
     });
   });
   $('#screen').each(function () {
@@ -40,6 +60,7 @@ $(function () {
       var x = e.pageX - offset.left, y = e.pageY - offset.top;
       $('#status').html('x: '+ e.pageX + '<br />y: ' + e.pageY + '<br />');
       source.inc(x,y);
+      frame.inc(x,y);
       $(this).append($('<div>').addClass('point').css({top:y, left:x}));
     });
   });
@@ -53,5 +74,20 @@ $(function () {
       self.append($('<div>').addClass('point').css({top:y, left:x}));
     });
   }, 100);
+  setInterval(function () {
+    var buf = frame.dump();
+    var scaled = buf.scale(64,48);
+    frames.push(scaled);
+    if ($('#frames > .frame').length > 30) {
+      $('#frames > .frame').first().remove();
+    }
+    var ui = $('<div>').addClass('frame');
+    scaled.each(function (cell) {
+      if (!cell.data) return;
+      var x = cell.x, y = cell.y;
+      ui.append($('<div>').addClass('point').css({top:y, left:x}));
+    });
+    $('#frames').append(ui);
+  });
 });
 </script>

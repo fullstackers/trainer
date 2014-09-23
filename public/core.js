@@ -1078,7 +1078,7 @@ function Frame (w,h) {
   this.w = w || 1;
   this.h = h || 1;
   this.size = h * w;
-  this.data = new Array(this.size);
+  this.zero();
 }
 
 /**
@@ -1111,6 +1111,30 @@ Frame.prototype.get = function (x, y) {
 };
 
 /**
+ * Clears all the values
+ *
+ * @return Frame
+ */
+
+Frame.prototype.zero = function () {
+  this.data = new Array(this.size);
+  return this;
+};
+
+/**
+ * Dumps the current state of the frame and zeros it out
+ *
+ * @return Frame
+ */
+
+Frame.prototype.dump = function () {
+  var frame = this.scale(this.w, this.h);
+  this.zero();
+  return frame;
+};
+
+/**
+ *
  * Iterates over each cell calling the passed function with
  * the cell and the current index
  *
