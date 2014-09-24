@@ -1,7 +1,7 @@
 <style type="text/css">
 #screen {
-  height:480px;
-  width:640px;
+  height:240px;
+  width:320px;
   border:thin solid #CCC;
   display:inline-block;
 }
@@ -9,15 +9,17 @@
   display:block;
   border:thin solid #CCC;
 }
-#reduced, .frame {
-  height:48px;
-  width:64px;
+#playback, #reduced, .frame {
+  height:24px;
+  width:32px;
   border:thin solid #CCC;
   display:inline-block;
 }
+#playback, .frame {
+  position:relative;
+}
 .frame {
   margin:.15em;
-  position:relative;
 }
 .point {
   height:1px;
@@ -33,10 +35,14 @@
 <div class="left">
   <div id="screen"></div>
   <div id="reduced"></div>
+  <div id="playback"></div>
 </div>
 <div class="right">
   <div id="controls">
     <button name="clear">Clear</button>
+    <button name="record">Record</button>
+    <button name="play">Play</button>
+    <button name="stop">Stop</button>
   </div>
   <div id="status"></div>
   </div>
@@ -45,13 +51,51 @@
 <script src="/core.js"></script>
 <script>
 $(function () {
-  var source = Frame(640,480);
-  var frame = Frame(640,480);
-  var frames = [];
+  var surface = Frame(320,240);
+  var tape = [];
+  var index = -1;
+  var frame = Frame(320,240);
   $('#controls').each(function () {
-    $(this).find('button[name="clear"]').click(function () {
-      $('#screen,#reduced').html('');
-      source = Frame(640,480);
+    var self = $(this);
+    self.find('button[name="play"],button[name="stop"]').hide();
+    self.find('button[name="record"]').click(function () {
+      self.find('button[name="stop"]').show();
+      $(this).hide();
+    });
+    self.find('button[name="clear"]').each(function () {
+      $(this).click(function () {
+        $('#screen,#reduced').html('');
+        surface = Frame(320,240);
+      });
+    });
+    self.find('button[name="play"]').click(function () {
+      $(this).hide();
+      var playback = Frame(32, 24);
+      console.log('%s %s %o', index, tape.length, tape[index])
+      console.log(tape);
+      (function next () {
+        if (++index >= tape.length) return;
+        try {
+          console.log('frame', tape[index]);
+          playback.stack(tape[index]);
+          var c =0;
+          for (var i=0; i<playback.size; i++) { c = c + playback.data[i]; }
+          console.log('c', c);
+          var ui = $('#playback');
+          ui.empty();
+          playback.each(function (cell) {
+            if (!cell.data) return;
+            var x = cell.x, y = cell.y;
+            ui.append($('<div>').addClass('point').css({top:y, left:x}));
+          });
+        }
+        catch(e) { console.error(e); };
+        setTimeout(next, 1000);
+      })();
+    });
+    self.find('button[name="stop"]').click(function () {
+      self.find('button[name="record"],button[name="play"]').show();
+      $(this).hide();
     });
   });
   $('#screen').each(function () {
@@ -59,7 +103,7 @@ $(function () {
       var offset = $(this).offset();
       var x = e.pageX - offset.left, y = e.pageY - offset.top;
       $('#status').html('x: '+ e.pageX + '<br />y: ' + e.pageY + '<br />');
-      source.inc(x,y);
+      surface.inc(x,y);
       frame.inc(x,y);
       $(this).append($('<div>').addClass('point').css({top:y, left:x}));
     });
@@ -68,16 +112,17 @@ $(function () {
     $('#reduced').html('');
     var self = $('#reduced');
     var offset = self.offset();
-    source.scale(64,48).each(function (cell) {
+    surface.scale(32,24).each(function (cell) {
       if (!cell.data) return;
       var x = cell.x + offset.left, y = cell.y + offset.top;
       self.append($('<div>').addClass('point').css({top:y, left:x}));
     });
   }, 100);
   setInterval(function () {
+    if ($('button[name="record"]').is(':visible')) return;
     var buf = frame.dump();
-    var scaled = buf.scale(64,48);
-    frames.push(scaled);
+    var scaled = buf.scale(32,24);
+    tape.push(scaled);
     if ($('#frames > .frame').length > 30) {
       $('#frames > .frame').first().remove();
     }
@@ -88,6 +133,6 @@ $(function () {
       ui.append($('<div>').addClass('point').css({top:y, left:x}));
     });
     $('#frames').append(ui);
-  });
+  },1000);
 });
 </script>

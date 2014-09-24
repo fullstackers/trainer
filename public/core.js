@@ -1075,6 +1075,7 @@ var util = require('util');
 
 function Frame (w,h) {
   if (!(this instanceof Frame)) return new Frame(w,h);
+  this.created = Date.now();
   this.w = w || 1;
   this.h = h || 1;
   this.size = h * w;
@@ -1118,6 +1119,7 @@ Frame.prototype.get = function (x, y) {
 
 Frame.prototype.zero = function () {
   this.data = new Array(this.size);
+  for (var i=0; i<this.data.length; i++) this.data[i] = 0;
   return this;
 };
 
@@ -1307,6 +1309,13 @@ Frame.prototype.scale = function (w, h) {
     }
   });
   return frame;
+};
+
+Frame.prototype.stack = function (frame) {
+  for (var i=0; i<this.size; i++) {
+    this.data[i] = (this.data[i] || 0) + (frame.data[i] || 0); 
+  }
+  return this;
 };
 
 module.exports = Frame;
