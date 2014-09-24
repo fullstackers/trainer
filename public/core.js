@@ -5127,7 +5127,6 @@ Frame.prototype.scale = function (w, h) {
 
 Frame.prototype.stack = function (frame) {
   for (var i=0; i<this.size; i++) {
-    if (frame.data[i]) console.log('d');
     this.data[i] = (this.data[i] || 0) + (frame.data[i] || 0); 
   }
   return this;

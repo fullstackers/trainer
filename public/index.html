@@ -1,128 +1,255 @@
 <style type="text/css">
-#screen {
-  height:240px;
-  width:320px;
-  border:thin solid #CCC;
+.block {
   display:inline-block;
-}
-#frames {
-  display:block;
   border:thin solid #CCC;
+  padding:.15em;
+  text-align:center;
 }
-#playback, #reduced, .frame {
-  height:24px;
+.block span {
+  display:block;
+}
+.block div {
+  margin:0;
+  padding:0;
+}
+#screen {
+  height:128px;
+  width:128px;
+  border:thin solid #CCC;
+  display:block;
+}
+#guess, #playback, #reduced, .frame {
+  height:32px;
   width:32px;
   border:thin solid #CCC;
-  display:inline-block;
+  display:block;
 }
-#playback, .frame {
+#guess, #playback, .frame {
   position:relative;
 }
 .frame {
-  margin:.15em;
+  padding:0;
+  display:inline-block;
 }
 .point {
   height:1px;
   width:1px;
-  background:#000;
+  background-color:#000;
   position:absolute;
+  margin:0;
+  padding:0;
 }
 .left, .right {
   vertical-align:top;
   display:inline-block;
+  margin:1em;
+}
+.frames {
+  margin: 1em;
+}
+#frames, #trained {
+  padding: .15em;
+  display:block;
+  border:thin solid #CCC;
 }
 </style>
 <div class="left">
-  <div id="screen"></div>
-  <div id="reduced"></div>
-  <div id="playback"></div>
+  <div class="block">
+    <span>Surface</span>
+    <div id="screen"></div>
+  </div>
+  <div class="block">
+      <span>Reduced</span>
+    <div id="reduced"></div>
+  </div>
+  <div class="block">
+    <span>Playback</span>
+    <div id="playback"></div>
+  </div>
+  <div class="block">
+    <span>Guess</span>
+    <div id="guess"></div>
+  </div>
 </div>
 <div class="right">
   <div id="controls">
     <button name="clear">Clear</button>
     <button name="record">Record</button>
     <button name="play">Play</button>
+    <button name="train">Train</button>
     <button name="stop">Stop</button>
+    <button name="reset">Reset</button>
   </div>
   <div id="status"></div>
+  <div id="training"></div>
   </div>
-<div id="frames"></div>
+<div class="frames">
+  <span>Frames</span>
+  <div id="frames"></div>
+</div>
+<div class="frames">
+  <span>Trained</span>
+  <div id="trained"></div>
+</div>
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
 <script src="/core.js"></script>
 <script>
 $(function () {
-  var surface = Frame(320,240);
+  var net = new Brain.NeuralNetwork();
+  var train = net.createTrainStream({
+      floodCallback: function () {
+        var i = -1;
+        (function next () {
+          if (++i > trained.length || !trained[i]) return train.write(null);
+          train.write(trained[i]);
+          setTimeout(next, I);
+        })();
+      },
+      doneTrainingCallback: function (info) {
+        var buf = []
+        for (var k in info) {
+          buf[buf.length] = k + ': ' + info[k];
+        }
+        $('#training').html(buf.join('<br />'));
+      },
+      log: true,
+      callbackPeriod: 10,
+      callback: function (info) {
+        var buf = []
+        for (var k in info) {
+          buf[buf.length] = k + ': ' + info[k];
+        }
+        $('#training').html(buf.join('<br />'));
+      }
+  });
+  var I = 100;
+  var W = 128, H = 128;
+  var w = 32, h = 32;
+  var surface = Frame(W,H);
   var tape = [];
+  var trained = [];
   var index = -1;
-  var frame = Frame(320,240);
+  var frame = Frame(W,H);
   $('#controls').each(function () {
     var self = $(this);
-    self.find('button[name="play"],button[name="stop"]').hide();
+    self.find('button[name="play"],button[name="stop"],button[name="train"],button[name="reset"]').hide();
     self.find('button[name="record"]').click(function () {
       self.find('button[name="stop"]').show();
       $(this).hide();
     });
     self.find('button[name="clear"]').each(function () {
       $(this).click(function () {
-        $('#screen,#reduced').html('');
-        surface = Frame(320,240);
+        $('#screen,#reduced,#playback,#guess').html('');
+        surface = Frame(W,H);
       });
     });
     self.find('button[name="play"]').click(function () {
       $(this).hide();
-      var playback = Frame(32, 24);
-      console.log('%s %s %o', index, tape.length, tape[index])
-      console.log(tape);
+      var playback = Frame(w, h);
       (function next () {
         if (++index >= tape.length) return;
         try {
-          console.log('frame', tape[index]);
           playback.stack(tape[index]);
-          var c =0;
-          for (var i=0; i<playback.size; i++) { c = c + playback.data[i]; }
-          console.log('c', c);
           var ui = $('#playback');
-          ui.empty();
+      //    ui.empty();
+          var buf = '';
           playback.each(function (cell) {
             if (!cell.data) return;
-            var x = cell.x, y = cell.y;
-            ui.append($('<div>').addClass('point').css({top:y, left:x}));
+            buf = buf + '<div class="point" style="top:'+cell.y+'px;left:'+cell.x+'px"></div>';
           });
+          ui.html(buf);
         }
         catch(e) { console.error(e); };
-        setTimeout(next, 1000);
+        setTimeout(next, I);
       })();
     });
-    self.find('button[name="stop"]').click(function () {
-      self.find('button[name="record"],button[name="play"]').show();
+    self.find('button[name="train"]').click(function () {
+      setTimeout(function () {
+      var pattern = Frame(w, h);
+      var input = [], output = [];
+      for (var i=0; i<tape.length; i++) pattern.stack(tape[i]);
+      console.log(pattern.data.join(''));
+      var ui = $('<div>').addClass('frame');
+      pattern.each(function (cell, i) {
+        input[i] = pattern.bound(cell.data);
+        output[i] = 0; 
+        if (!cell.data) return;
+        output[i] = 1; 
+        var x = cell.x, y = cell.y;
+        ui.append($('<div>').addClass('point').css({top:y, left:x}));
+      });
+      trained.push({input:input, output:output});
+      train.write({input:input, output:output});
+      train.write(null);
+      $('#trained').append(ui);
+      tape.length = 0;
+      index = -1;
+      $('#frames, #guess, #playback, #reduced').html('');
+      },I);
       $(this).hide();
+    });
+    self.find('button[name="stop"]').click(function () {
+      self.find('button[name="record"],button[name="play"],button[name="train"],button[name="reset"]').show();
+      $(this).hide();
+    });
+    self.find('button[name="reset"]').click(function () {
+      self.find('button[name="record"]').show();
+      self.find('button[name="play"],button[name="train"]').hide();
+      $(this).hide();
+      tape.length = 0;
+      index = -1;
+      $('#screen, #frames, #guess, #playback, #reduced').html('');
     });
   });
   $('#screen').each(function () {
-    $(this).mousemove(function (e) {
-      var offset = $(this).offset();
-      var x = e.pageX - offset.left, y = e.pageY - offset.top;
+    function plot (e) {
+      console.log(e);
+      var x = e.pageX, y = e.pageY;
       $('#status').html('x: '+ e.pageX + '<br />y: ' + e.pageY + '<br />');
       surface.inc(x,y);
       frame.inc(x,y);
       $(this).append($('<div>').addClass('point').css({top:y, left:x}));
+    }
+    $(this).mousedown(function () {
+      $(this).mousemove(plot);
+    });
+    $(this).mouseup(function () {
+      $(this).unbind('mousemove', plot);
+      var guess = Frame(w,h);
+      try { guess.data = net.run(surface.scale(w,h).data); } catch (e) { } 
+      guess.data = guess.data || [];
+      var buf = '';
+      guess.each(function (cell) {
+        if (!cell.data) return;
+        buf = buf + '<div class="point" style="top:'+(cell.y)+'px;left:'+(cell.x)+'px;opacity:'+cell.data+'"></div>';
+      });
+      $('#guess').html(buf);
     });
   });
   setInterval(function () {
     $('#reduced').html('');
     var self = $('#reduced');
     var offset = self.offset();
-    surface.scale(32,24).each(function (cell) {
+    var buf = '';
+    var scaled = surface.scale(w,h).each(function (cell) {
       if (!cell.data) return;
-      var x = cell.x + offset.left, y = cell.y + offset.top;
-      self.append($('<div>').addClass('point').css({top:y, left:x}));
+//      var x = cell.x + offset.left, y = cell.y + offset.top;
+        buf = buf + '<div class="point" style="top:'+(cell.y+offset.top)+'px;left:'+(cell.x+offset.left)+'px"></div>';
+ //     self.append($('<div>').addClass('point').css({top:y, left:x}));
     });
-  }, 100);
+    self.html(buf);
+  }, I);
   setInterval(function () {
     if ($('button[name="record"]').is(':visible')) return;
     var buf = frame.dump();
-    var scaled = buf.scale(32,24);
+    var scaled = buf.scale(w,h);
     tape.push(scaled);
+    /*
+    train.write({input:scaled.data, output:scaled.data});
+    if (tape[tape.length - 1]) train.write({input:tape[tape.length - 1].data, output:scaled.data});
+    train.write(null);
+    */
+
     if ($('#frames > .frame').length > 30) {
       $('#frames > .frame').first().remove();
     }
@@ -133,6 +260,6 @@ $(function () {
       ui.append($('<div>').addClass('point').css({top:y, left:x}));
     });
     $('#frames').append(ui);
-  },1000);
+  },I);
 });
 </script>
