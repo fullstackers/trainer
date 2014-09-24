@@ -17,6 +17,7 @@
   width:128px;
   border:thin solid #CCC;
   display:block;
+  position:relative;
 }
 #guess, #playback, #reduced, .frame {
   height:32px;
@@ -61,7 +62,7 @@
   <li>Click <em>Play</em> to watch the condensed version of your actions</li>
   <li>Click <em>Train</em> to train the brain with your image</li>
   <li>Click <em>Reset</em> to start over</li>
-</ol
+</ol>
 <p>As you train new images, the brain will continue to process them and learn. The brain will
 also take a guess and tell you what combinations of patterns it thinks you are doing.  The more
 data you feed the brain the better it will be.</p>
@@ -214,14 +215,17 @@ $(function () {
     });
   });
   $('#screen').each(function () {
+    var offset = $(this).offset();
     function plot (e) {
-      console.log(e);
-      var x = e.pageX, y = e.pageY;
-      $('#status').html('x: '+ e.pageX + '<br />y: ' + e.pageY + '<br />');
+      var x = Math.round(e.pageX - offset.left), y = Math.round(e.pageY - offset.top);
       surface.inc(x,y);
       frame.inc(x,y);
       $(this).append($('<div>').addClass('point').css({top:y, left:x}));
     }
+    $(this).mousemove(function (e) {
+      var x = Math.round(e.pageX - offset.left), y = Math.round(e.pageY - offset.top);
+      $('#status').html('x: '+ x + '<br />y: ' + y + '<br />');
+    });
     $(this).mousedown(function () {
       $(this).mousemove(plot);
     });
