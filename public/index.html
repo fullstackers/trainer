@@ -20,8 +20,8 @@
   position:relative;
 }
 #guess, #playback, #reduced, .frame {
-  height:32px;
-  width:32px;
+  height:16px;
+  width:16px;
   border:thin solid #CCC;
   display:block;
 }
@@ -52,6 +52,9 @@
   padding: .15em;
   display:block;
   border:thin solid #CCC;
+}
+table {
+  clear:both;
 }
 </style>
 <h1>Trainer</h1>
@@ -104,6 +107,8 @@ data you feed the brain the better it will be.</p>
   <span>Trained</span>
   <div id="trained"></div>
 </div>
+<div id="network">
+</div>
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
 <script src="/core.js"></script>
 <script>
@@ -115,7 +120,7 @@ $(function () {
         (function next () {
           if (++i > trained.length || !trained[i]) return train.write(null);
           train.write(trained[i]);
-          setTimeout(next, I);
+          setTimeout(next, 0);
         })();
       },
       doneTrainingCallback: function (info) {
@@ -126,7 +131,8 @@ $(function () {
         $('#training').html(buf.join('<br />'));
       },
       log: true,
-      callbackPeriod: 10,
+      callbackPeriod: 100,
+      hiddenLayers:[256,256],
       callback: function (info) {
         var buf = []
         for (var k in info) {
@@ -137,7 +143,7 @@ $(function () {
   });
   var I = 100;
   var W = 128, H = 128;
-  var w = 32, h = 32;
+  var w = 16, h = 16;
   var surface = Frame(W,H);
   var tape = [];
   var trained = [];
@@ -216,6 +222,9 @@ $(function () {
   });
   $('#screen').each(function () {
     var offset = $(this).offset();
+    $(this).resize(function () {
+      offset = $(this).offset();
+    });
     function plot (e) {
       var x = Math.round(e.pageX - offset.left), y = Math.round(e.pageY - offset.top);
       surface.inc(x,y);
